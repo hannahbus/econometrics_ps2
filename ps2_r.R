@@ -10,15 +10,17 @@ library(sandwich)
 #to do====
 #structure and write
 #1.6 interpretation
-#1.8 bootstrap
-#2.1 summarize paper
-#2.7 robust and clustered errors same??
+#1.8 bootstrap 
+#2.1 summarize paper 
+#2.7 robust and clustered errors same?? 
 #2.7 clustered errors manually?
-#2.8 explanation
+#2.8 explanation 
 
 
 #Part 1====
 #1 summary
+#Alternativ nur skim(evs) berücksichtigt die Datenstruktur 
+
 evs = read.csv("ps2_EVS.csv")
 describe(evs)
 summary(evs$country)
@@ -29,7 +31,18 @@ str(evs$Sex)
 summary(evs$Education)
 hist(evs$Education)
 
+#No missing observations. Besides this, data look plausible. ESS samples persons from 15 years or older, regardless of nationality and citizenship, language or legal status. 
+# Latter fact may explain why there are some observations with no elementary-education. Also in accordance, with the sampling structure reported ages look also plausible spreading from 15 to 
+#108 years. With fewer observations at the lower and upper tails. 
+#No apparent mistakes in data. Self-reported values of happiness and satisfaction lie within the 1-4 and 1-10 range. 
+#Dummy variables take on two values - 0,1. 
+#Hannah Gender distribution, education distribution etc. 
+
 #2 Conditional Expectation
+# Alternativ könnte man abkürzen  cond_exp_age = aggregate(evs$Satisfaction, list(evs$Age), mean) 
+# plot(cond_exp_age$Group.1, cond_exp_age$x, "p") # oder "b" für Punkte und Linien
+#Gleiche Logik für andere Conditional Expectation
+
 cond_exp_age = matrix(nrow=length(unique(evs$Age)), ncol = 2)
 cond_exp_age = data.frame(cond_exp_age)
 cond_exp_age$X1 = unique(evs$Age)
@@ -53,7 +66,7 @@ plot(cond_exp_u$unemployed, cond_exp_u$exp_satisfation)
 #3 linear regression
 reg1 = lm(Satisfaction ~ Unemployed, data = evs)
 summary(reg1)
-#being unemployed decreases satisfaction on scale 1-10 by 0.87 on average (highly significant)
+#being unemployed decreases satisfaction on scale 1-10 by 0.87 points on average (highly significant)
 
 #4
 #manual regression and computation of heteroskedastic standard errors
@@ -70,23 +83,27 @@ coeftest(reg1, vcov = vcovHC(reg1, type = "HC0")) #HC0 uses white standard error
 #5
 reg2 = lm(Satisfaction ~ Unemployed + PartnerUnemployed + Unemployed:PartnerUnemployed, data = evs)
 summary(reg2)
-#effect how much unemployment decreases satisfaction depends on whether the partner is unemployed or not.
-#If partner is unemployed, unemployment only decreases satisfaction by (0.8725 - 0.3976) = 0.4749
-#If partner isn't unemployed, unemployed decreases satisfaction by 0.8725 
+#Effect how much unemployment decreases self-reported satisfaction depends on whether the partner is unemployed or not.
+#If partner is unemployed, unemployment only decreases satisfaction by  (0.8725 - 0.3976) = 0.4749 points ceteris paribus.
+#If partner isn't unemployed, unemployment decreases satisfaction by 0.8725 points ceteris paribus. 
+#Hannah: ceteris paribus um deutlich zu machen, dass occupation status beim parnter konstant gehalten wird.  
+# Hannah To Do: Beta1 und co Beziehung einfügen. 
 
 #6
-coeftest(reg2, vcov = vcovHC(reg2, type = "HC0"))
-#interpretation?
-
+coeftest(reg2, vcov = vcovHC(reg2, type = "HC0")) #To Do Hannah: Check this command produces same results, used sandwich command
+#interpretation? 
+#If the error terms are heteroskedastic, OLS standard errors are biased. White standard errors are, however, consistent.  
+#Hannah To Do: Argumentieren, grosse Abweichungen?
 
 #7
-#H0 : beta1*beta2 = beta3 using delat method
-gradient = c(reg2$coefficients[3], reg2$coefficients[2], -1)
+#H0 : beta1*beta2 = beta3 using delta method
+# Rearrange H0 to beta1*beta2 - beta3 = 0
+gradient = c(reg2$coefficients[3], reg2$coefficients[2], -1) 
 t(gradient)
 View(gradient)
 View(t(gradient))
 #get variance betahat
-vcov(reg2)
+vcov(reg2) #schritt notwendig? 
 vcov=vcov(reg2)
 vcov=vcov[-1,]
 vcov=vcov[,-1]
@@ -99,6 +116,9 @@ crit = qt(0.95, (nrow(evs) - length(reg2$coefficients)))
 if (abs(tstat)>crit) {
   print("H_0 that beta1*beta2 = beta3 is rejected")
 } else {print("H_0 that beta1*beta2 = beta3 is not rejected")}
+#Alternativ p-Wert ausrechnen, mehr Information zu welchem Signifikanzniveau verwerfen
+#p.value = dt(tstat, df=length(evs)-length(reg$2coefficients))
+
 
 #8 bootstrap
 bootstrap = matrix(nrow = length(reg2$coefficients), ncol = 10)
@@ -125,10 +145,12 @@ summary(penn$country)
 evs = read.csv("ps2_EVS.csv")
 merged = merge(evs, penn, by = c("country", "year"))
 # less observations. for some country in evs there was no information in penn
-
+# reason 1: evs confined to European countries, penn not. Some countries such as Northern Ireland (Hannah include uni notes) not included in penn.
 
 #3 Conditional Expectation
 #unemployed
+
+#Alternative wie oben
 cond_exp_un = matrix(nrow=length(unique(merged$empPopRatio)), ncol = 2)
 cond_exp_un = data.frame(cond_exp_un)
 cond_exp_un$X1 = unique(merged$empPopRatio)
@@ -137,7 +159,7 @@ for (i in unique(cond_exp_un$X1)) {
 } 
 cond_exp_un = rename(cond_exp_un, c("X1"="empPopRatio", "X2"="exp_satisfation_un"))
 plot(cond_exp_un$empPopRatio, cond_exp_un$exp_satisfation_un)
-#hardly any relationship visually detectable
+#hardly any relationship visually detectable #Hannah: causal/linear, more or less spreads randomly?
 #employed
 cond_exp_em = matrix(nrow=length(unique(merged$empPopRatio)), ncol = 2)
 cond_exp_em = data.frame(cond_exp_em)
@@ -155,10 +177,10 @@ summary(reg1)
 coeftest(reg1, vcov = vcovHC(reg1, type = "HC0"))
 
 #5 
-#empPopRatio only varies at level of country. For clusters, where year is the same, each observation has the same empPopRatio
+#empPopRatio only varies at level of country. Within country-year-clusters each observation has the same empPopRatio 
 
 #6
-#Moulton factor. need average cluster size, rho_eps, rho_x
+#Moulton factor. need average cluster size, rho_eps, rho_xj
 #average cluster size
 length(unique(merged$country))
 str(merged$country)
@@ -173,6 +195,8 @@ for (i in 1:41) {
 }
 clustersize = rename(clustersize, c("X1"="index", "X2"="as.numeric(country)", "X3"="clustersize"))
 Nbar = mean(clustersize$clustersize)
+#Hannah alternative aus Uni einfuegen.
+
 #rho_eps: 
 resid = reg1$residuals
 sigmahatsq = (t(resid)%*%resid)/(length(resid) - length(reg1$coefficients))
@@ -237,13 +261,16 @@ for (i in 1:41) {
 #sum should be sum over g of (X_g)' times Psi_hat times X_g in formula from slide 23
 clustervhatbeta = solve(t(X[,-4]) %*% X[,-4]) %*% sum %*% solve(t(X[,-4]) %*% X[,-4])
 #not sure why it isn't working
+#Hannah: Check uni 
 
 #8
 reg2 = lm(Satisfaction ~ Unemployed + empPopRatio + Unemployed:empPopRatio, data = merged)
 summary(reg2)
 coeftest(reg2, vcov=vcovHC(reg2, type = "HC0", cluster = "index"))
 # coefficient on unemployment positive
+#Include Interpretation 
 
 #9
 curve(reg2$coefficients[1] + reg2$coefficients[2] + reg2$coefficients[3]*x + reg2$coefficients[4]*x, from = 0, to = 1)
 # for unemployed people, empPopRatio negatively affects Satisfaction
+# include code for two-line graph to illustrate difference between employed and unemployed.
