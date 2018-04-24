@@ -121,16 +121,16 @@ if (abs(tstat)>crit) {
 
 
 #8 bootstrap
-bootstrap = matrix(nrow = length(reg2$coefficients), ncol = 10)
-for (i in 1:10) {
-  evs[i] = sample_n(evs, size = nrow(evs), replace = TRUE)
-  reg[i] = lm(Satisfaction ~ Unemployed + PartnerUnemployed + Unemployed:PartnerUnemployed, data = evs[i])
-  bootstrap[,i] = reg[i]$coefficients
+bootstrap = matrix(nrow = length(reg2$coefficients), ncol = 10000)
+#caution: the following command takes R quiet a while to compute
+for (i in 1:10000) {
+  bootstrap[,i] = lm(Satisfaction ~ Unemployed + PartnerUnemployed + Unemployed:PartnerUnemployed, data = sample_n(evs, size = nrow(evs), replace = TRUE))$coefficients
 }
+var(bootstrap[2,])
+bootstrapSE = matrix(nrow = 4, ncol = 2)
+bootstrapSE[,1] = coeftest(reg2, vcov=vcovHC(reg2, type = "HC0"))[,2]
+bootstrapSE[,2] = c(sqrt(var(bootstrap[1,])), sqrt(var(bootstrap[2,])), sqrt(var(bootstrap[3,])), sqrt(var(bootstrap[4,])))
 
-
-evs_sample = sample_n(evs, size = nrow(evs), replace = TRUE)
-length(reg2$coefficients)
 
 #Part 2====
 ls()
