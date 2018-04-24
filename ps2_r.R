@@ -11,7 +11,7 @@ library(sandwich)
 #structure and write
 #1.6 interpretation
 #1.8 bootstrap 
-#2.1 summarize paper 
+#2.1 summarize paper (done)
 #2.7 robust and clustered errors same?? 
 #2.7 clustered errors manually?
 #2.8 explanation 
@@ -35,7 +35,7 @@ hist(evs$Education)
 # Latter fact may explain why there are some observations with no elementary-education. Also in accordance, with the sampling structure reported ages look also plausible spreading from 15 to 
 #108 years. With fewer observations at the lower and upper tails. 
 #No apparent mistakes in data. Self-reported values of happiness and satisfaction lie within the 1-4 and 1-10 range. 
-#Dummy variables take on two values - 0,1. 
+#Dummy variables take on two values - 0,1, year only 2008. 
 #Hannah Gender distribution, education distribution etc. 
 
 #2 Conditional Expectation
@@ -139,7 +139,12 @@ penn = read.csv("ps2_Penn.csv")
 summary(penn$country)
 
 #1 
-#Investigate how macroeconomic variables influence human well-being
+#Contribute to the debate on the true costs of business cycles. 
+#Run regressions on self-reported satisfaction of thousands of people from different countries and find: 
+#(1) Broadly common structure of happiness regressions across countries, i.e. a sizable set of personal characteristics has a similar influence on self-reported satisfaction
+#(2) Business cycles have a sizable effects on self-reported satisfaction. In monetary terms: Give each citizen with 200 dollars
+# per year to compensate for induced losses in self-reported satisfaction. 
+
 
 #2 
 evs = read.csv("ps2_EVS.csv")
@@ -182,6 +187,14 @@ coeftest(reg1, vcov = vcovHC(reg1, type = "HC0"))
 #6
 #Moulton factor. need average cluster size, rho_eps, rho_xj
 #average cluster size
+
+#Alternative to compute Nbar 
+total = total %>% mutate(indicator = 1)
+groupsize = aggregate(total$indicator, list(total$country), sum) 
+mean(groupsize)
+nbar = mean(groupsize$x) 
+ 
+
 length(unique(merged$country))
 str(merged$country)
 summary(merged$country)
@@ -272,5 +285,5 @@ coeftest(reg2, vcov=vcovHC(reg2, type = "HC0", cluster = "index"))
 
 #9
 curve(reg2$coefficients[1] + reg2$coefficients[2] + reg2$coefficients[3]*x + reg2$coefficients[4]*x, from = 0, to = 1)
-# for unemployed people, empPopRatio negatively affects Satisfaction
+# for unemployed people, empPopRatio negatively affects Satisfaction. Conversely, for an employed person satisfaction inreases c.p. in empPopRatio.
 # include code for two-line graph to illustrate difference between employed and unemployed.
