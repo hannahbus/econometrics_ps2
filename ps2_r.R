@@ -9,8 +9,6 @@ library(lmtest)
 library(sandwich)
 library(matlib)
 #to do====
-#structure and write
-#1.6 interpretation
 #1.8 bootstrap 
 #2.7 robust and clustered errors same?? 
 #2.7 clustered errors manually?
