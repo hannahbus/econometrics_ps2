@@ -9,10 +9,8 @@ library(lmtest)
 library(sandwich)
 library(skimr)
 #to do====
-#1.6 interpretation
-#2.7 robust and clustered errors same?? 
 #2.7 clustered errors manually?
-#2.8 explanation 
+#part3(optional)
 
 
 #Part 1====
@@ -65,9 +63,9 @@ summary(reg2)
 # Hannah To Do: Beta1 und co Beziehung einfügen. 
 
 #6
-coeftest(reg2, vcov = vcovHC(reg2, type = "HC0")) #To Do Hannah: Check this command produces same results, used sandwich command
-#interpretation? 
+coeftest(reg2, vcov = vcovHC(reg2, type = "HC0")) #To Do Hannah: Check this command produces same results, used sandwich command 
 #If the error terms are heteroskedastic, OLS standard errors are incorrect. White standard allow for heteroskedasticity and yield correctly computed standard errors and thus correct conclusions about the significance of estimated coefficients.  
+#When interpreting estimated coefficients one should keep in mind that the dependend variable is self-reported satisfaction in a survey and not a naturally measured variable. Thus one should for example refrain from intepretations like "a person with satisfaction 8 is twice as happy as one with satisfaction 4."
 #Hannah To Do: Argumentieren, grosse Abweichungen?
 
 #7
@@ -217,8 +215,7 @@ clustervhatbeta = solve(t(X[,-4]) %*% X[,-4]) %*% sum %*% solve(t(X[,-4]) %*% X[
 reg2 = lm(Satisfaction ~ Unemployed + empPopRatio + Unemployed:empPopRatio, data = merged)
 summary(reg2)
 coeftest(reg2, vcov=vcovHC(reg2, type = "HC0", cluster = "index"))
-# coefficient on unemployment positive
-#Include Interpretation 
+#coefficient on unemployment positive. However beta1 is not the whole effect of Unemployment on self-reported satisfaction. Due to the interaction term it also depends on the value of empPopRatio. The estimated coefficient for the interaction term is negative. Taking the derivative of the regression equation with the estimated coefficients shows that the expected marginal effect of Unemployment (including the effect through the interaction term) is negative if empPopRatio is larger than beta1/(-beta3) = 1.14/5 = 0.228.
 
 #9
 curve(reg2$coefficients[1] + reg2$coefficients[2] + reg2$coefficients[3]*x + reg2$coefficients[4]*x, from = 0, to = 1)
