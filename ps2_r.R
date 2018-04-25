@@ -7,6 +7,7 @@ library(plyr)
 library(Matrix)
 library(lmtest)
 library(sandwich)
+library(matlib)
 #to do====
 #structure and write
 #1.6 interpretation
@@ -111,7 +112,7 @@ summary(penn$country)
 #1 
 #Contribute to the debate on the true costs of business cycles. 
 #Run regressions on self-reported satisfaction of thousands of people from different countries and find: 
-#(1) Broadly common structure of happiness regressions across countries, i.e. a sizable set of personal characteristics has a similar 
+#(1) Broadly common structure of happiness regressions across countries, i.e. a set of personal characteristics has a similar 
 #influence on self-reported satisfaction
 #(2) Business cycles have a sizable effects on self-reported satisfaction. In monetary terms: Give each citizen 200 dollars
 #per year to compensate for induced losses in self-reported satisfaction. 
@@ -127,29 +128,27 @@ merged = merge(evs, penn, by = c("country", "year"))
 #3 Conditional Expectation
 #unemployed
 
-#total = total %>% mutate(empPopRatioUn = empPopRatio*Unemployed)
-#condexunpop = aggregate(total$Satisfaction, list(total$empPopRatioUn), mean)
-#plot(condexunpop$Group.1, condexunpop$x, "b") 
-
-cond_exp_un = matrix(nrow=length(unique(merged$empPopRatio)), ncol = 2)
-cond_exp_un = data.frame(cond_exp_un)
+cond_exp_un = data.frame(matrix(NA, nrow=length(unique(merged$empPopRatio)), ncol =2))
 cond_exp_un$X1 = unique(merged$empPopRatio)
 for (i in unique(cond_exp_un$X1)) {
   cond_exp_un$X2[cond_exp_un$X1 == i] = mean(merged$Satisfaction[merged$empPopRatio == i & merged$Unemployed == 1])
 } 
+cond_exp_un = cond_exp_un[order(cond_exp_un$X1),]
 names(cond_exp_un) = c("empPopRatio", "exp_satisfation_un")
-plot(cond_exp_un$empPopRatio, cond_exp_un$exp_satisfation_un)
-#hardly any relationship visually detectable 
+plot(cond_exp_un$empPopRatio, cond_exp_un$exp_satisfation_un, "b")
+abline(lm(cond_exp_un$exp_satisfation_un ~ cond_exp_un$empPopRatio))
+#No systematic linear relationship visually detectable 
+
 #employed
-cond_exp_em = matrix(nrow=length(unique(merged$empPopRatio)), ncol = 2)
-cond_exp_em = data.frame(cond_exp_em)
+cond_exp_em = data.frame(matrix(NA, nrow=length(unique(merged$empPopRatio)), ncol = 2))
 cond_exp_em$X1 = unique(merged$empPopRatio)
 for (i in unique(cond_exp_em$X1)) {
   cond_exp_em$X2[cond_exp_em$X1 == i] = mean(merged$Satisfaction[merged$empPopRatio == i & merged$Unemployed == 0])
 } 
-cond_exp_em = rename(cond_exp_em, c("X1"="empPopRatio", "X2"="exp_satisfation_em"))
+names(cond_exp_em) = c("empPopRatio", "exp_satisfation_em")
 plot(cond_exp_em$empPopRatio, cond_exp_em$exp_satisfation_em)
-#difficult to see relationship, satisfaction might be increasing in empPopRatio
+abline(lm( cond_exp_em$exp_satisfation_em ~ cond_exp_em$empPopRatio))
+#Satisfaction is increasing in empPopRatio
 
 #4
 reg1 = lm(Satisfaction ~ Unemployed + empPopRatio, data = merged)
@@ -165,42 +164,42 @@ coeftest(reg1, vcov = sandwich)
 
 #compute Nbar 
 
-str(merged$country)
-summary(merged$country)
-summary(as.numeric(merged$country))
 length(unique(merged$country))
-clustersize = matrix(nrow = length(unique(as.numeric(merged$country))), ncol = 3)
-clustersize[,1] = c(1:41)
-clustersize[,2] = unique(as.numeric(merged$country))
-clustersize = data.frame(clustersize)
+clustersize = data.frame(matrix(NA, nrow=length(unique(as.numeric(merged$country))), ncol = 4))
+clustersize$X1 = c(1:41)
+clustersize$X2 = unique(as.numeric(merged$country))
 for (i in 1:41) {
   clustersize[i, 3] = length(merged$country[as.numeric(merged$country) == clustersize[i, 2]])
 }
-names(clustersize) = c("index", "country as number", "clustersize")
+names(clustersize) = c("index", "country as number", "clustersize", "meanresid")
 Nbar = mean(clustersize$clustersize)
-#läuft nicht durch 
+
+
 #rho_eps: 
 resid = reg1$residuals
-sigmahatsq = (t(resid)%*%resid)/(length(resid) - length(reg1$coefficients))
 merged$residuals = resid
-clustersize$meanresid = mean(merged$residuals[as.numeric(merged$country) == clustersize$as.numeric(country)])
-mean(merged$residuals)
-mean(merged$residuals[as.numeric(merged$country) == 1])
+sigmahatsq = (t(resid)%*%resid)/(length(resid) - length(reg1$coefficients))
+
 for (i in 1:41) {
   clustersize[i, 4] = mean(merged$residuals[as.numeric(merged$country) == clustersize[i, 2]])
 }
+
 merged$countrynumeric = as.numeric(merged$country)
-test = merge(merged, clustersize, by.x = "countrynumeric", by.y = "as.numeric(country)")
+test = merge(merged, clustersize, by.x = "countrynumeric", by.y = "country as number")
 merged = test
 merged$residdemeaned = merged$residuals - merged$meanresid
-sigmatildesq = (t(merged$residdemeaned) %*% merged$residdemeaned)/(length(merged$residuals) - length(unique(merged$empPopRatio)) - length(reg1$coefficients))
-sigmatildesq
+sigmatildesq = (t(merged$residdemeaned) %*% merged$residdemeaned)/(length(merged$residuals) - length(unique(merged$country)) - length(reg1$coefficients))
 rho_eps = (sigmahatsq - sigmatildesq)/sigmatildesq
 rho_eps
-#rho_x equals one
+
+#rho_xj, j=2 equals one
 Moulton = sqrt(1 + (Nbar - 1)*rho_eps)
 Moulton
-X = model.matrix(~., data = merged %>% select(Unemployed, empPopRatio))
+
+X = matrix(NA, nrow=length(merged$Satisfaction), ncol=3)
+X[,1] = c(1)
+X[,2] = merged$Unemployed
+X[,3] = merged$empPopRatio
 Vbetahat = c(sigmahatsq) * solve(t(X) %*% X) * c(1 + (Nbar - 1)*rho_eps)
 y = merged$Satisfaction
 betahat = solve(t(X)%*%X) %*% t(X) %*% y
@@ -216,15 +215,14 @@ for (i in 1:3) {
 }
 robustSE = matrix(nrow = 3, ncol = 1)
 robustSE[,1] = coeftest(reg1, vcov = vcovHC(reg1, type = "HC0"))[,2]
-robustSE
 moultonSE = matrix(nrow = 3, ncol = 1)
 moultonSE[,1] = sqrt(diag(Vbetahat))
-moultonSE
 comparison = data.frame(robust=robustSE, moulton=moultonSE, clustered=clusteredSE)
 comparison
 
 #manually
 #need for each cluster g: X_g and Psi_g
+
 merged = arrange(merged, index)
 reg1 = lm(Satisfaction ~ Unemployed + empPopRatio, data = merged)
 resid = reg1$residuals
@@ -241,7 +239,6 @@ for (i in 1:41) {
 #sum should be sum over g of (X_g)' times Psi_hat times X_g in formula from slide 23
 clustervhatbeta = solve(t(X[,-4]) %*% X[,-4]) %*% sum %*% solve(t(X[,-4]) %*% X[,-4])
 #not sure why it isn't working
-#Hannah: Check uni 
 
 #8
 reg2 = lm(Satisfaction ~ Unemployed + empPopRatio + Unemployed:empPopRatio, data = merged)
